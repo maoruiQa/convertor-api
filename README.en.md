@@ -93,7 +93,7 @@ _✨ Access all LLM through the standard OpenAI API format, easy to deploy & use
    git clone https://github.com/songquanpeng/one-api.git
 
    # Build the frontend
-   cd one-api/web/default
+   cd convertor-api/web/default
    npm install
    npm run build
 
