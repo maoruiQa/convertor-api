@@ -133,7 +133,7 @@ _✨ 通过标准的 OpenAI API 格式访问所有的大模型，开箱即用 �
    git clone https://github.com/songquanpeng/one-api.git
 
    # 构建前端
-   cd one-api/web/default
+   cd convertor-api/web/default
    npm install
    npm run build
 
