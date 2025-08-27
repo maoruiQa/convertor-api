@@ -86,47 +86,6 @@ _✨ Access all LLM through the standard OpenAI API format, easy to deploy & use
 18. Immediate support and encapsulation of other major model APIs as they become available.
 
 ## Deployment
-### Docker Deployment
-
-Deployment command:
-`docker run --name one-api -d --restart always -p 3000:3000 -e TZ=Asia/Shanghai -v /home/ubuntu/data/one-api:/data justsong/one-api`
-
-Update command: `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower -cR`
-
-The first `3000` in `-p 3000:3000` is the port of the host, which can be modified as needed.
-
-Data will be saved in the `/home/ubuntu/data/one-api` directory on the host. Ensure that the directory exists and has write permissions, or change it to a suitable directory.
-
-Nginx reference configuration:
-```
-server{
-   server_name openai.justsong.cn;  # Modify your domain name accordingly
-
-   location / {
-          client_max_body_size  64m;
-          proxy_http_version 1.1;
-          proxy_pass http://localhost:3000;  # Modify your port accordingly
-          proxy_set_header Host $host;
-          proxy_set_header X-Forwarded-For $remote_addr;
-          proxy_cache_bypass $http_upgrade;
-          proxy_set_header Accept-Encoding gzip;
-   }
-}
-```
-
-Next, configure HTTPS with Let's Encrypt certbot:
-```bash
-# Install certbot on Ubuntu:
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-# Generate certificates & modify Nginx configuration
-sudo certbot --nginx
-# Follow the prompts
-# Restart Nginx
-sudo service nginx restart
-```
-
-The initial account username is `root` and password is `123456`.
 
 ### Manual Deployment
 1. Download the executable file from [GitHub Releases](https://github.com/songquanpeng/one-api/releases/latest) or compile from source:
