@@ -93,7 +93,7 @@ _✨ 標準的な OpenAI API フォーマットを通じてすべての LLM に�
    git clone https://github.com/songquanpeng/one-api.git
 
    # フロントエンドのビルド
-   cd one-api/web/default
+   cd convertor-api/web/default
    npm install
    npm run build
 
