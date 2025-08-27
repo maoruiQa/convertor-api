@@ -50,6 +50,15 @@ type ChannelConfig struct {
 	Plugin            string `json:"plugin,omitempty"`
 	VertexAIProjectID string `json:"vertex_ai_project_id,omitempty"`
 	VertexAIADC       string `json:"vertex_ai_adc,omitempty"`
+	// Feature: Chat-only Tool-Call Conversion
+	// When enabled, the relay can inject a system prompt to guide chat-only models
+	// to emit textual tool-call instructions which will be parsed and converted
+	// into structured tool_call responses.
+	PromptToolCallEnabled bool     `json:"prompt_tool_call_enabled,omitempty"`
+	// If empty, applies to all models under this channel; otherwise only to listed models
+	PromptToolCallModels  []string `json:"prompt_tool_call_models,omitempty"`
+	// Optional custom system prompt override for tool-call conversion
+	PromptToolCallPrompt  string   `json:"prompt_tool_call_prompt,omitempty"`
 }
 
 func GetAllChannels(startIdx int, num int, scope string) ([]*Channel, error) {

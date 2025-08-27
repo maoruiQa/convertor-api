@@ -37,8 +37,22 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	meta.OriginModelName = textRequest.Model
 	textRequest.Model, _ = getMappedModelName(textRequest.Model, meta.ModelMapping)
 	meta.ActualModelName = textRequest.Model
+	// optionally inject chat-only tool-call conversion prompt
+	injectedPrompt := meta.ForcedSystemPrompt
+	if meta.Config.PromptToolCallEnabled {
+		hasTools := len(textRequest.Tools) > 0 || textRequest.Functions != nil || textRequest.FunctionCall != nil
+		if hasTools && modelAllowedForToolPrompt(meta.ActualModelName, meta.Config.PromptToolCallModels) {
+			toolPrompt := buildToolCallPrompt(textRequest.Tools, meta.Config.PromptToolCallPrompt)
+			if injectedPrompt != "" {
+				injectedPrompt = injectedPrompt + "\n\n" + toolPrompt
+			} else {
+				injectedPrompt = toolPrompt
+			}
+			meta.PromptToolCallActive = true
+		}
+	}
 	// set system prompt if not empty
-	systemPromptReset := setSystemPrompt(ctx, textRequest, meta.ForcedSystemPrompt)
+	systemPromptReset := setSystemPrompt(ctx, textRequest, injectedPrompt)
 	// get model ratio & group ratio
 	modelRatio := billingratio.GetModelRatio(textRequest.Model, meta.ChannelType)
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
@@ -88,14 +102,15 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 }
 
 func getRequestBody(c *gin.Context, meta *meta.Meta, textRequest *model.GeneralOpenAIRequest, adaptor adaptor.Adaptor) (io.Reader, error) {
-	if !config.EnforceIncludeUsage &&
-		meta.APIType == apitype.OpenAI &&
-		meta.OriginModelName == meta.ActualModelName &&
-		meta.ChannelType != channeltype.Baichuan &&
-		meta.ForcedSystemPrompt == "" {
-		// no need to convert request for openai
-		return c.Request.Body, nil
-	}
+    if !config.EnforceIncludeUsage &&
+        meta.APIType == apitype.OpenAI &&
+        meta.OriginModelName == meta.ActualModelName &&
+        meta.ChannelType != channeltype.Baichuan &&
+        meta.ForcedSystemPrompt == "" &&
+        !meta.PromptToolCallActive {
+        // no need to convert request for openai
+        return c.Request.Body, nil
+    }
 
 	// get request body
 	var requestBody io.Reader
@@ -112,4 +127,46 @@ func getRequestBody(c *gin.Context, meta *meta.Meta, textRequest *model.GeneralO
 	logger.Debugf(c.Request.Context(), "converted request: \n%s", string(jsonData))
 	requestBody = bytes.NewBuffer(jsonData)
 	return requestBody, nil
+}
+
+// buildToolCallPrompt returns the default system prompt for simulating tool-calls
+// via textual JSON that the relay will parse back into structured tool_calls.
+func buildToolCallPrompt(tools []model.Tool, override string) string {
+	if override != "" {
+		return override
+	}
+	var buf bytes.Buffer
+	buf.WriteString("You can call tools by emitting ONLY a single JSON object. When a tool call is required, output this exact structure and nothing else (no markdown, no code fences, no extra text):\n")
+	buf.WriteString(`{"tool_calls":[{"type":"function","function":{"name":"<tool_name>","arguments":{...}}}]}` + "\n")
+	buf.WriteString("For multiple tool calls, include multiple items in the tool_calls array in the same JSON object.\n")
+	buf.WriteString("Available tools and their JSON argument schemas:\n")
+	for _, t := range tools {
+		paramsJSON, _ := json.Marshal(t.Function.Parameters)
+		buf.WriteString("- name: ")
+		buf.WriteString(t.Function.Name)
+		if t.Function.Description != "" {
+			buf.WriteString(" — ")
+			buf.WriteString(t.Function.Description)
+		}
+		buf.WriteByte('\n')
+		buf.WriteString("  parameters: ")
+		buf.Write(paramsJSON)
+		buf.WriteByte('\n')
+	}
+	buf.WriteString("If no tool call is necessary, answer normally as the assistant without any JSON envelope.")
+	return buf.String()
+}
+
+// modelAllowedForToolPrompt checks whether the model should activate the tool prompt
+// based on the optional whitelist. If the whitelist is empty, all models are allowed.
+func modelAllowedForToolPrompt(model string, allow []string) bool {
+	if len(allow) == 0 {
+		return true
+	}
+	for _, m := range allow {
+		if m == model {
+			return true
+		}
+	}
+	return false
 }

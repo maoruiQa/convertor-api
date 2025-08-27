@@ -35,6 +35,9 @@ type Meta struct {
 	PromptTokens       int // only for DoResponse
 	ForcedSystemPrompt string
 	StartTime          time.Time
+	// PromptToolCallActive indicates that we injected a prompt to simulate tool-calls
+	// and expect to convert textual instructions into structured tool_calls in the response.
+	PromptToolCallActive bool
 }
 
 func GetByContext(c *gin.Context) *Meta {
