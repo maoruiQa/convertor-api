@@ -86,48 +86,6 @@ _✨ 標準的な OpenAI API フォーマットを通じてすべての LLM に�
 18. 他の主要なモデル API が利用可能になった場合、即座にサポートし、カプセル化する。
 
 ## デプロイメント
-### Docker デプロイメント
-
-デプロイコマンド:
-`docker run --name one-api -d --restart always -p 3000:3000 -e TZ=Asia/Shanghai -v /home/ubuntu/data/one-api:/data justsong/one-api`。
-
-コマンドを更新する: `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock containrr/watchtower -cR`。
-
-`-p 3000:3000` の最初の `3000` はホストのポートで、必要に応じて変更できます。
-
-データはホストの `/home/ubuntu/data/one-api` ディレクトリに保存される。このディレクトリが存在し、書き込み権限があることを確認する、もしくは適切なディレクトリに変更してください。
-
-Nginxリファレンス設定:
-```
-server{
-   server_name openai.justsong.cn;  # ドメイン名は適宜変更
-
-   location / {
-          client_max_body_size  64m;
-          proxy_http_version 1.1;
-          proxy_pass http://localhost:3000;  # それに応じてポートを変更
-          proxy_set_header Host $host;
-          proxy_set_header X-Forwarded-For $remote_addr;
-          proxy_cache_bypass $http_upgrade;
-          proxy_set_header Accept-Encoding gzip;
-          proxy_read_timeout 300s;  # GPT-4 はより長いタイムアウトが必要
-   }
-}
-```
-
-次に、Let's Encrypt certbot を使って HTTPS を設定します:
-```bash
-# Ubuntu に certbot をインストール:
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-# 証明書の生成と Nginx 設定の変更
-sudo certbot --nginx
-# プロンプトに従う
-# Nginx を再起動
-sudo service nginx restart
-```
-
-初期アカウントのユーザー名は `root` で、パスワードは `123456` です。
 
 ### マニュアルデプロイ
 1. [GitHub Releases](https://github.com/songquanpeng/one-api/releases/latest) から実行ファイルをダウンロードする、もしくはソースからコンパイルする:
