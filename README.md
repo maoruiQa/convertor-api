@@ -9,7 +9,7 @@
 
 <div align="center">
 
-# One API
+# Convertor API
 
 _✨ 通过标准的 OpenAI API 格式访问所有的大模型，开箱即用 ✨_
 
@@ -130,7 +130,7 @@ _✨ 通过标准的 OpenAI API 格式访问所有的大模型，开箱即用 �
 ### 手动部署
 1. 从 [GitHub Releases](https://github.com/songquanpeng/one-api/releases/latest) 下载可执行文件或者从源码编译：
    ```shell
-   git clone https://github.com/songquanpeng/one-api.git
+   git clone https://github.com/maoruiQa/convertor-api.git
 
    # 构建前端
    cd convertor-api/web/default
