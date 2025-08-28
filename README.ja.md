@@ -8,7 +8,7 @@
 
 <div align="center">
 
-# One API
+# Convertor API
 
 _✨ 標準的な OpenAI API フォーマットを通じてすべての LLM にアクセスでき、導入と利用が容易です ✨_
 
@@ -90,7 +90,7 @@ _✨ 標準的な OpenAI API フォーマットを通じてすべての LLM に�
 ### マニュアルデプロイ
 1. [GitHub Releases](https://github.com/songquanpeng/one-api/releases/latest) から実行ファイルをダウンロードする、もしくはソースからコンパイルする:
    ```shell
-   git clone https://github.com/songquanpeng/one-api.git
+   git clone https://github.com/maoruiQa/convertor-api.git
 
    # フロントエンドのビルド
    cd convertor-api/web/default
