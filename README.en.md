@@ -94,7 +94,7 @@ _✨ Access all LLM through the standard OpenAI API format, easy to deploy & use
 
    # Build the frontend
    cd convertor-api/web/default
-   npm install
+   npm install --force
    npm run build
 
    # Build the backend
