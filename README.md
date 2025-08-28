@@ -134,7 +134,7 @@ _✨ 通过标准的 OpenAI API 格式访问所有的大模型，开箱即用 �
 
    # 构建前端
    cd convertor-api/web/default
-   npm install
+   npm install --force
    npm run build
 
    # 构建后端
