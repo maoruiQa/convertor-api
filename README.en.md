@@ -8,7 +8,7 @@
 
 <div align="center">
 
-# One API
+# Convertor API
 
 _✨ Access all LLM through the standard OpenAI API format, easy to deploy & use ✨_
 
@@ -90,7 +90,7 @@ _✨ Access all LLM through the standard OpenAI API format, easy to deploy & use
 ### Manual Deployment
 1. Download the executable file from [GitHub Releases](https://github.com/songquanpeng/one-api/releases/latest) or compile from source:
    ```shell
-   git clone https://github.com/songquanpeng/one-api.git
+   git clone https://github.com/maoruiQa/convertor-api.git
 
    # Build the frontend
    cd convertor-api/web/default
