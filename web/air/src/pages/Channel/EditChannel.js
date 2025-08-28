@@ -58,6 +58,11 @@ const EditChannel = (props) => {
     const [basicModels, setBasicModels] = useState([]);
     const [fullModels, setFullModels] = useState([]);
     const [customModel, setCustomModel] = useState('');
+    const [config, setConfig] = useState({
+        prompt_tool_call_enabled: false,
+        prompt_tool_call_models: [],
+        prompt_tool_call_prompt: '',
+    });
     const handleInputChange = (name, value) => {
         setInputs((inputs) => ({...inputs, [name]: value}));
         if (name === 'type' && inputs.models.length === 0) {
@@ -123,6 +128,9 @@ const EditChannel = (props) => {
         }
         //setAutoBan
     };
+    const handleConfigChange = (name, value) => {
+        setConfig((prev) => ({ ...prev, [name]: value }));
+    };
 
 
     const loadChannel = async () => {
@@ -144,6 +152,13 @@ const EditChannel = (props) => {
                 data.model_mapping = JSON.stringify(JSON.parse(data.model_mapping), null, 2);
             }
             setInputs(data);
+            if (data.config && data.config !== '') {
+                try {
+                    setConfig(JSON.parse(data.config));
+                } catch (e) {
+                    // ignore parse error, keep defaults
+                }
+            }
             if (data.auto_ban === 0) {
                 setAutoBan(false);
             } else {
@@ -245,6 +260,7 @@ const EditChannel = (props) => {
         localInputs.auto_ban = autoBan ? 1 : 0;
         localInputs.models = localInputs.models.join(',');
         localInputs.group = localInputs.groups.join(',');
+        localInputs.config = JSON.stringify(config);
         if (isEdit) {
             res = await API.put(`/api/channel/`, {...localInputs, id: parseInt(channelId)});
         } else {
@@ -521,6 +537,52 @@ const EditChannel = (props) => {
                     }>
                         填入模板
                     </Typography.Text>
+                    {/* Chat-only Tool-Call Conversion */}
+                    <div style={{ marginTop: 10, display: 'flex' }}>
+                        <Space>
+                            <Checkbox
+                              checked={!!config.prompt_tool_call_enabled}
+                              onChange={() => {
+                                  setConfig((c) => ({
+                                      ...c,
+                                      prompt_tool_call_enabled: !c.prompt_tool_call_enabled,
+                                  }))
+                              }}
+                            />
+                            <Typography.Text strong>启用聊天模型工具调用解析（实验特性）</Typography.Text>
+                        </Space>
+                    </div>
+                    <Typography.Text type={'tertiary'}>
+                        为仅聊天的模型注入系统提示，指导其以 JSON 输出工具调用，系统会自动解析并转为标准 tool_calls。
+                    </Typography.Text>
+                    {config.prompt_tool_call_enabled && (
+                      <>
+                          <div style={{ marginTop: 10 }}>
+                              <Typography.Text strong>模型白名单：</Typography.Text>
+                          </div>
+                          <Select
+                            placeholder={'可选：若不选择则对该渠道下所有模型生效'}
+                            name='prompt_tool_call_models'
+                            multiple
+                            selection
+                            onChange={value => handleConfigChange('prompt_tool_call_models', value)}
+                            value={config.prompt_tool_call_models || []}
+                            autoComplete='new-password'
+                            optionList={modelOptions}
+                          />
+                          <div style={{ marginTop: 10 }}>
+                              <Typography.Text strong>自定义系统提示词（可选）：</Typography.Text>
+                          </div>
+                          <TextArea
+                            placeholder={'可选：覆盖默认系统提示词，用于指导模型按 JSON 输出工具调用'}
+                            name='prompt_tool_call_prompt'
+                            onChange={value => handleConfigChange('prompt_tool_call_prompt', value)}
+                            autosize
+                            value={config.prompt_tool_call_prompt || ''}
+                            autoComplete='new-password'
+                          />
+                      </>
+                    )}
                     <div style={{ marginTop: 10 }}>
                         <Typography.Text strong>密钥：</Typography.Text>
                     </div>

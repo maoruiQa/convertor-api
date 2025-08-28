@@ -519,6 +519,43 @@ const EditChannel = () => {
                     autoComplete='new-password'
                   />
                 </Form.Field>
+                <Form.Field>
+                  <Form.Checkbox
+                    toggle
+                    label='启用聊天工具调用转换'
+                    checked={Boolean(config.prompt_tool_call_enabled)}
+                    onChange={(e, { checked }) =>
+                      handleConfigChange(e, { name: 'prompt_tool_call_enabled', value: checked })
+                    }
+                  />
+                  <Form.Dropdown
+                    label='工具调用模型白名单'
+                    placeholder='可选，留空表示对该渠道的所有模型生效'
+                    name='prompt_tool_call_models'
+                    fluid
+                    multiple
+                    selection
+                    search
+                    onChange={(e, { value }) =>
+                      handleConfigChange(e, { name: 'prompt_tool_call_models', value })
+                    }
+                    value={config.prompt_tool_call_models || []}
+                    autoComplete='new-password'
+                    options={modelOptions}
+                  />
+                  <Form.TextArea
+                    label='工具调用系统提示词（可选）'
+                    name='prompt_tool_call_prompt'
+                    onChange={handleConfigChange}
+                    value={config.prompt_tool_call_prompt || ''}
+                    style={{
+                      minHeight: 120,
+                      fontFamily: 'JetBrains Mono, Consolas',
+                    }}
+                    autoComplete='new-password'
+                    placeholder='不填写则使用默认提示词'
+                  />
+                </Form.Field>
               </>
             )}
             {inputs.type === 33 && (

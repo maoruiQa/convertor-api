@@ -617,6 +617,66 @@ const EditModal = ({ open, channelId, onCancel, onOk }) => {
                   <FormHelperText id="helper-tex-channel-system_prompt-label"> {inputPrompt.system_prompt} </FormHelperText>
                 )}
               </FormControl>
+              <Divider sx={{ my: 2 }} />
+              <FormControl fullWidth sx={{ ...theme.typography.otherInput }}>
+                <Container
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 0
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600 }}>启用聊天工具调用转换</div>
+                    <FormHelperText>当开启时，将尝试将仅文本的工具调用指令解析为结构化 tool_calls。</FormHelperText>
+                  </div>
+                  <Switch
+                    checked={Boolean(values.config?.prompt_tool_call_enabled)}
+                    onChange={(e) => setFieldValue('config.prompt_tool_call_enabled', e.target.checked)}
+                  />
+                </Container>
+              </FormControl>
+              <FormControl fullWidth sx={{ ...theme.typography.otherInput }}>
+                <Autocomplete
+                  multiple
+                  freeSolo
+                  id="channel-prompt_tool_call_models-label"
+                  options={modelOptions.map((m) => m.id)}
+                  value={values.config?.prompt_tool_call_models || []}
+                  onChange={(e, value) => {
+                    setFieldValue('config.prompt_tool_call_models', value);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      name="config.prompt_tool_call_models"
+                      label={'工具调用模型白名单'}
+                      placeholder={'可选，留空表示对该渠道的所有模型生效'}
+                    />
+                  )}
+                />
+                <FormHelperText id="helper-tex-channel-prompt_tool_call_models-label">
+                  留空表示对该渠道的所有模型生效
+                </FormHelperText>
+              </FormControl>
+              <FormControl fullWidth sx={{ ...theme.typography.otherInput }}>
+                <TextField
+                  multiline
+                  id="channel-prompt_tool_call_prompt-label"
+                  label={'工具调用系统提示词（可选）'}
+                  value={values.config?.prompt_tool_call_prompt || ''}
+                  name="config.prompt_tool_call_prompt"
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  aria-describedby="helper-text-channel-prompt_tool_call_prompt-label"
+                  minRows={4}
+                  placeholder={'不填写则使用默认提示词'}
+                />
+                <FormHelperText id="helper-tex-channel-prompt_tool_call_prompt-label">
+                  可用于覆盖默认的系统提示词以控制模型输出工具调用格式。
+                </FormHelperText>
+              </FormControl>
               <DialogActions>
                 <Button onClick={onCancel}>取消</Button>
                 <Button disableElevation disabled={isSubmitting} type="submit" variant="contained" color="primary">
