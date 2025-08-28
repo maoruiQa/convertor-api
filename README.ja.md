@@ -94,7 +94,7 @@ _✨ 標準的な OpenAI API フォーマットを通じてすべての LLM に�
 
    # フロントエンドのビルド
    cd convertor-api/web/default
-   npm install
+   npm install --force
    npm run build
 
    # バックエンドのビルド
