@@ -1,0 +1,41 @@
+--- Conclusion ---
+❌ No evidence of tool calling in this response.
+Possible reasons: provider doesn't expose tool-calling, model chosen doesn't support it, or extra flags are required.
+
+---- Response summary (compact) ----
+{
+  "id": "20c563a3-a165-4310-be77-1addaa3b594f",
+  "object": "chat.completion",
+  "created": 1756389095,
+  "model": "gemini-2.5-pro",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}",
+        "reasoning_content": "Okay, here's what I'm thinking. I'm being asked to execute the \"ping\" tool. First, I need to confirm that \"ping\" is actually *available* in my repertoire of utilities. Then, looking at the prompt, I see it's a simple instruction: \"please invoke ping tool if available.\" That means I'm essentially calling the `ping` function. Since the prompt offers no *specific* targets or flags for `ping`, the argument list will, of course, be empty.\n\nNow, the actual execution plan. The prompt is clear. I've validated the function, and have determined the arguments are null. I'll build the JSON tool call, ensuring it's structured correctly. It will begin with the top-level `tool_calls` key, which is an array, and, within that array, I need a single object. That object will have `type: \"function\"`, and then inside that will be the `function` object. This will have the `name: \"ping\"`, and the `arguments` will be an empty JSON object, `{}`.\n\nTherefore, the definitive output, which I must generate and, *crucially*, be the *sole* response, is: `{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}`. I'm being very careful to adhere to that single JSON structure. That's the complete and correct call.\n"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}
+
+-- Second response (ambiguous) --
+{
+  "id": "6d75c27a-5dff-41ac-82e4-e83fd63af96a",
+  "object": "chat.completion",
+  "created": 1756389104,
+  "model": "gemini-2.5-pro",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}",
+        "reasoning_content": "Okay, here's my thought process: The user wants me to invoke the `ping` tool.  Right. First, I need to remember the constraints.  No parameters are allowed, the response *must* be a tool call, and it has to be in that specific JSON format – you know, the one with `tool_calls`, `type`, and the nested `function` structure.\n\nNow, let's see... I have `ping`. Great. I check the schema for `ping`. Ah, it has an empty parameter set, perfectly suitable for no parameters.\n\nSo, I'll construct the tool call: `tool_name` is `ping`. The `arguments` will be `{}` – an empty JSON object – adhering to the schema.\n\nNow, I build the final JSON. I wrap the call in the `tool_calls` array, specifying the \"function\" type and filling in all the required fields. I double-check all the syntax, ensuring proper nesting and correct key-value pairs.\n\nFinally, I do a quick run-through: Did I call `ping`? Yes. Are there any arguments? Nope, it's an empty object. Is it a tool call, not just plain text? Absolutely. Does it follow that specific JSON structure to the letter? Yes, it does. Excellent.  I'm ready to output the result.\n"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}

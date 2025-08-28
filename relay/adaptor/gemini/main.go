@@ -18,6 +18,7 @@ import (
 	"github.com/songquanpeng/one-api/common/random"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
 	"github.com/songquanpeng/one-api/relay/constant"
+	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
 
 	"github.com/gin-gonic/gin"
@@ -383,6 +384,13 @@ func Handler(c *gin.Context, resp *http.Response, promptTokens int, modelName st
 	}
 	fullTextResponse := responseGeminiChat2OpenAI(&geminiResponse)
 	fullTextResponse.Model = modelName
+
+	// Chat-only tool-call conversion: if active, parse textual JSON tool-calls into structured tool_calls
+	if m := meta.GetByContext(c); m != nil && m.PromptToolCallActive {
+		for i := range fullTextResponse.Choices {
+			convertMessageToolCallsFromText(&fullTextResponse.Choices[i].Message)
+		}
+	}
 	completionTokens := openai.CountTokenText(geminiResponse.GetResponseText(), modelName)
 	usage := model.Usage{
 		PromptTokens:     promptTokens,
@@ -398,6 +406,73 @@ func Handler(c *gin.Context, resp *http.Response, promptTokens int, modelName st
 	c.Writer.WriteHeader(resp.StatusCode)
 	_, err = c.Writer.Write(jsonResponse)
 	return nil, &usage
+}
+
+// convertMessageToolCallsFromText tries to parse a single JSON object from the assistant message content
+// and convert it into structured tool_calls. Returns true if conversion happened.
+func convertMessageToolCallsFromText(msg *model.Message) bool {
+	if msg == nil {
+		return false
+	}
+	if len(msg.ToolCalls) > 0 {
+		// already structured, nothing to do
+		return false
+	}
+	content := msg.StringContent()
+	if strings.TrimSpace(content) == "" {
+		return false
+	}
+	raw := stripCodeFencesGemini(content)
+	raw = strings.TrimSpace(raw)
+	if !strings.HasPrefix(raw, "{") || !strings.HasSuffix(raw, "}") {
+		return false
+	}
+	// Try parsing {"tool_calls": [...]} shape first
+	var wrapper struct {
+		ToolCalls []model.Tool `json:"tool_calls"`
+	}
+	if err := json.Unmarshal([]byte(raw), &wrapper); err == nil && len(wrapper.ToolCalls) > 0 {
+		msg.ToolCalls = wrapper.ToolCalls
+		// clear content per OpenAI schema when tool calls are present
+		msg.Content = ""
+		return true
+	}
+	// Try parsing a single tool-call object: {"type":"function","function":{...}}
+	var single struct {
+		Type     string         `json:"type"`
+		Function model.Function `json:"function"`
+	}
+	if err := json.Unmarshal([]byte(raw), &single); err == nil && (single.Function.Name != "" || single.Type == "function") {
+		if single.Type == "" {
+			single.Type = "function"
+		}
+		msg.ToolCalls = []model.Tool{{
+			Type:     single.Type,
+			Function: single.Function,
+		}}
+		msg.Content = ""
+		return true
+	}
+	return false
+}
+
+// stripCodeFencesGemini removes wrapping markdown code fences like ```json ... ``` if present
+func stripCodeFencesGemini(s string) string {
+	t := strings.TrimSpace(s)
+	if !strings.HasPrefix(t, "```") {
+		return t
+	}
+	// drop first line fence
+	t = strings.TrimPrefix(t, "```")
+	// remove optional language tag at start of line
+	if idx := strings.IndexByte(t, '\n'); idx >= 0 {
+		t = t[idx+1:]
+	}
+	// trim trailing fence
+	if i := strings.LastIndex(t, "```"); i >= 0 {
+		t = t[:i]
+	}
+	return t
 }
 
 func EmbeddingHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusCode, *model.Usage) {
