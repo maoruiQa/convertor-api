@@ -5,7 +5,7 @@
 import requests, json, re, time, sys
 
 API_BASE = "http://127.0.0.1:3000/v1"   # 改成你的 base
-API_KEY  = "sk-cQP8tIYLgFgznhoaEbC1Fc35878c42F6A84061101aCdF665"
+API_KEY  = "sk-3MsYjdKSXR3sPKIt94Ec798343004981A614E9Bc6bA2AaA2"
 MODEL    = "gemini-2.5-pro-preview-06-05-thinking"                           # 要检测的模型名
 TIMEOUT  = 30
 

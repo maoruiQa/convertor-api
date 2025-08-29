@@ -34,7 +34,7 @@ func StreamHandler(c *gin.Context, resp *http.Response, relayMode int) (*model.E
 
 	common.SetEventStreamHeaders(c)
 
-	// Chat-only tool-call conversion flag
+	// Chat-only tool-call conversion flag (keep gated in streaming to avoid breaking native streaming semantics)
 	m := meta.GetByContext(c)
 	convertActive := m != nil && m.PromptToolCallActive && relayMode == relaymode.ChatCompletions
 
@@ -234,86 +234,77 @@ func StreamHandler(c *gin.Context, resp *http.Response, relayMode int) (*model.E
 		return ErrorWrapper(err, "close_response_body_failed", http.StatusInternalServerError), "", nil
 	}
 
-	return nil, responseText, usage
+return nil, responseText, usage
 }
 
 func Handler(c *gin.Context, resp *http.Response, promptTokens int, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
-	var textResponse SlimTextResponse
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return ErrorWrapper(err, "read_response_body_failed", http.StatusInternalServerError), nil
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return ErrorWrapper(err, "close_response_body_failed", http.StatusInternalServerError), nil
-	}
-	err = json.Unmarshal(responseBody, &textResponse)
-	if err != nil {
-		return ErrorWrapper(err, "unmarshal_response_body_failed", http.StatusInternalServerError), nil
-	}
-	if textResponse.Error.Type != "" {
-		return &model.ErrorWithStatusCode{
-			Error:      textResponse.Error,
-			StatusCode: resp.StatusCode,
-		}, nil
-	}
-	// Check if we should convert textual tool-call JSON to structured tool_calls
-	m := meta.GetByContext(c)
-	converted := false
-	if m != nil && m.PromptToolCallActive && m.Mode == relaymode.ChatCompletions {
-		for i := range textResponse.Choices {
-			if convertMessageToolCalls(&textResponse.Choices[i].Message) {
-				// OpenAI uses finish_reason = "tool_calls" when emitting tool calls
-				textResponse.Choices[i].FinishReason = "tool_calls"
-				converted = true
-			}
-		}
-	}
+    var textResponse SlimTextResponse
+    responseBody, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return ErrorWrapper(err, "read_response_body_failed", http.StatusInternalServerError), nil
+    }
+    err = resp.Body.Close()
+    if err != nil {
+        return ErrorWrapper(err, "close_response_body_failed", http.StatusInternalServerError), nil
+    }
+    err = json.Unmarshal(responseBody, &textResponse)
+    if err != nil {
+        return ErrorWrapper(err, "unmarshal_response_body_failed", http.StatusInternalServerError), nil
+    }
+    // Opportunistic conversion: try to convert textual JSON tool-calls for ChatCompletions
+    converted := false
+    if m := meta.GetByContext(c); m != nil && m.Mode == relaymode.ChatCompletions {
+        for i := range textResponse.Choices {
+            if convertMessageToolCalls(&textResponse.Choices[i].Message) {
+                textResponse.Choices[i].FinishReason = "tool_calls"
+                converted = true
+            }
+        }
+    }
 
-	// We shouldn't set the header before we parse the response body, because the parse part may fail.
-	// And then we will have to send an error response, but in this case, the header has already been set.
-	// So the HTTPClient will be confused by the response.
-	// For example, Postman will report error, and we cannot check the response at all.
-	for k, v := range resp.Header {
-		c.Writer.Header().Set(k, v[0])
-	}
-	c.Writer.WriteHeader(resp.StatusCode)
-	if converted {
-		// marshal modified response and send
-		newBody, mErr := json.Marshal(textResponse)
-		if mErr != nil {
-			return ErrorWrapper(mErr, "marshal_modified_response_failed", http.StatusInternalServerError), nil
-		}
-		// ensure correct content-length
-		c.Writer.Header().Set("Content-Length", strconv.Itoa(len(newBody)))
-		if _, wErr := c.Writer.Write(newBody); wErr != nil {
-			return ErrorWrapper(wErr, "write_modified_response_failed", http.StatusInternalServerError), nil
-		}
-	} else {
-		// Reset response body and pass through
-		resp.Body = io.NopCloser(bytes.NewBuffer(responseBody))
-		_, err = io.Copy(c.Writer, resp.Body)
-		if err != nil {
-			return ErrorWrapper(err, "copy_response_body_failed", http.StatusInternalServerError), nil
-		}
-		err = resp.Body.Close()
-		if err != nil {
-			return ErrorWrapper(err, "close_response_body_failed", http.StatusInternalServerError), nil
-		}
-	}
+    // Pass through upstream headers
+    for k, v := range resp.Header {
+        if len(v) > 0 {
+            c.Writer.Header().Set(k, v[0])
+        }
+    }
+    c.Writer.WriteHeader(resp.StatusCode)
+    if converted {
+        // marshal modified response and send
+        newBody, mErr := json.Marshal(textResponse)
+        if mErr != nil {
+            return ErrorWrapper(mErr, "marshal_modified_response_failed", http.StatusInternalServerError), nil
+        }
+        // ensure correct content-length
+        c.Writer.Header().Set("Content-Length", strconv.Itoa(len(newBody)))
+        if _, wErr := c.Writer.Write(newBody); wErr != nil {
+            return ErrorWrapper(wErr, "write_modified_response_failed", http.StatusInternalServerError), nil
+        }
+    } else {
+        // Reset response body and pass through
+        resp.Body = io.NopCloser(bytes.NewBuffer(responseBody))
+        _, err = io.Copy(c.Writer, resp.Body)
+        if err != nil {
+            return ErrorWrapper(err, "copy_response_body_failed", http.StatusInternalServerError), nil
+        }
+        err = resp.Body.Close()
+        if err != nil {
+            return ErrorWrapper(err, "close_response_body_failed", http.StatusInternalServerError), nil
+        }
+    }
 
-	if textResponse.Usage.TotalTokens == 0 || (textResponse.Usage.PromptTokens == 0 && textResponse.Usage.CompletionTokens == 0) {
-		completionTokens := 0
-		for _, choice := range textResponse.Choices {
-			completionTokens += CountTokenText(choice.Message.StringContent(), modelName)
-		}
-		textResponse.Usage = model.Usage{
-			PromptTokens:     promptTokens,
-			CompletionTokens: completionTokens,
-			TotalTokens:      promptTokens + completionTokens,
-		}
-	}
-	return nil, &textResponse.Usage
+    if textResponse.Usage.TotalTokens == 0 || (textResponse.Usage.PromptTokens == 0 && textResponse.Usage.CompletionTokens == 0) {
+        completionTokens := 0
+        for _, choice := range textResponse.Choices {
+            completionTokens += CountTokenText(choice.Message.StringContent(), modelName)
+        }
+        textResponse.Usage = model.Usage{
+            PromptTokens:     promptTokens,
+            CompletionTokens: completionTokens,
+            TotalTokens:      promptTokens + completionTokens,
+        }
+    }
+    return nil, &textResponse.Usage
 }
 
 // convertMessageToolCalls tries to parse a single JSON object from the assistant message content
