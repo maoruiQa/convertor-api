@@ -1,43 +1,37 @@
-First response didn't show tool-call. Second probe also ambiguous.
-
 --- Conclusion ---
-❌ No evidence of tool calling in this response.
-Possible reasons: provider doesn't expose tool-calling, model chosen doesn't support it, or extra flags are required.
+❌ Error or unexpected response: {'message': '', 'type': '', 'param': '', 'code': None}
 
 ---- Response summary (compact) ----
 {
-  "id": "be5ba896-1ad2-4071-9970-58c3a010c932",
-  "object": "chat.completion",
-  "created": 1756397351,
-  "model": "gemini-2.5-pro",
   "choices": [
     {
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}",
-        "reasoning_content": "Okay, let's break this down. The user wants me to \"ping\". Simple enough. First, I check my toolbelt. Yep, there's a \"ping\" tool. Great, that's a direct match for the user's request. Now, let's look at the ping tool's spec. Hmm, no arguments needed – easy. So, it's straight forward: create the JSON for the tool call. It will be a \"tool_calls\" object, with a single entry. This entry is of \"type\" \"function\" and the \"function\" object will specify \"name\" as \"ping\", and the \"arguments\" will be an empty object, because this ping command needs no parameters. Here's the final JSON.\n"
+        "content": "",
+        "reasoning_content": "Okay, let's break this down. First, I need to understand what the user wants: \"invoke the ping tool if available.\" Simple enough. Now, let's see what tools are at my disposal. Aha, a tool called `ping`. Perfect. And it requires *no* arguments. Straightforward.\n\nAlright, time to construct the tool call. The format is pretty rigid, JSON-based. It's `{ \"tool_calls\": [ { \"type\": \"function\", \"function\": { \"name\": \"<tool_name>\", \"arguments\": { ... } } } ] }`. My tool is `ping`. It has no arguments, so the arguments part is an empty object.\n\nPutting it all together: `{ \"tool_calls\": [ { \"type\": \"function\", \"function\": { \"name\": \"ping\", \"arguments\": { } } } ] }`. And that's the final answer, just the JSON. Time to execute.\n",
+        "tool_calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "ping",
+              "arguments": {}
+            }
+          }
+        ]
       },
-      "finish_reason": "stop"
+      "finish_reason": "tool_calls"
     }
-  ]
-}
-
--- Second response (ambiguous) --
-{
-  "id": "08b209d1-c958-4a7d-8877-4214fcdeb0be",
-  "object": "chat.completion",
-  "created": 1756397356,
-  "model": "gemini-2.5-pro",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}",
-        "reasoning_content": "Okay, let's see. The user wants me to run the `ping` tool, which is straightforward enough.  I recall that `ping` doesn't actually take any arguments. Therefore, I'll need to build a JSON object to represent the tool call.\n\nI need to specify the tool name, which is `ping`, and the arguments, which will be an empty object `{}` in this case.  The overall structure is: a JSON object containing a `tool_calls` array, where the array contains an object describing the function call. \n\nSpecifically, it looks like this: `{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"<tool_name>\",\"arguments\":{...}}}]}`.  So, substituting in the specifics: `<tool_name>` is `ping` and `{...}` becomes `{}`.\n\nThe resulting, properly formatted JSON output I need to generate is: `{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"ping\",\"arguments\":{}}}]}`.  That's it. No extraneous text, just the JSON.\n"
-      },
-      "finish_reason": "stop"
-    }
-  ]
+  ],
+  "usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "error": {
+    "message": "",
+    "type": "",
+    "param": "",
+    "code": null
+  }
 }
